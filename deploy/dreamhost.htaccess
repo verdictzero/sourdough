@@ -9,5 +9,5 @@
 # the real node with --jitless. Passenger autodetects the app root (parent of
 # public/) and the startup file (app.js).
 
-PassengerNodejs /home/YOURUSER/bin/node-jitless
+PassengerNodejs /home/dh_9warvr/bin/node-jitless
 PassengerAppEnv production

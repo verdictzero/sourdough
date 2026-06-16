@@ -126,9 +126,13 @@ Copy `.env.example` → `.env.local`. Defaults work out of the box; knobs are
 
 ## Deploy
 
-`app.js` is a Passenger entry point and `deploy.sh` is a one-command deploy.
-See [`deploy/dreamhost.md`](deploy/dreamhost.md) for a full DreamHost shared-hosting
-walkthrough (Passenger, Node ≥ 22.5, HTTPS, restart).
+Live target is **Fly.io** — see [`deploy/fly.md`](deploy/fly.md). The repo ships a
+`Dockerfile` + `fly.toml` (Next standalone output, a persistent volume for the
+SQLite file) and instructions for pointing a custom domain at it.
+
+> DreamHost **shared** hosting can't run this (their Passenger caps at ~Node 13
+> and the port-proxy feature is VPS-only). The `deploy/dreamhost*` files are kept
+> for a future DreamHost VPS only.
 
 ## Roadmap
 

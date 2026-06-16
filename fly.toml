@@ -1,0 +1,29 @@
+# Fly.io config for Sourdough.
+#
+# IMPORTANT: set `app` to your actual Fly app name (run `fly apps list`).
+# A persistent volume named "sourdough_data" must exist in this region:
+#   fly volumes create sourdough_data --region iad --size 1
+# (SQLite lives on it at /data/sourdough.db so it survives deploys/restarts.)
+
+app = "CHANGE-ME"
+primary_region = "iad"
+
+[build]
+
+[env]
+  DATABASE_PATH = "/data/sourdough.db"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[mounts]]
+  source = "sourdough_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

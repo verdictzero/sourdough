@@ -17,7 +17,10 @@
 
 set -euo pipefail
 
-REMOTE="${REMOTE:?Set REMOTE=sshuser@yourserver (find the SSH user in the DreamHost panel > Users)}"
+# Defaults to your DreamHost box; override with REMOTE=... if it changes.
+# NOTE: DreamHost *shared* can't run modern Node — kept for a future DreamHost
+# VPS only. The live host is Fly.io (see deploy/fly.md).
+REMOTE="${REMOTE:-dh_9warvr@iad1-shared-b7-47.dreamhost.com}"
 APPDIR="${APPDIR:-sourdough.vaportrash.net}"
 
 echo "▶ Syncing source → ${REMOTE}:~/${APPDIR} (excluding node_modules/.next/data) ..."
