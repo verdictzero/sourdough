@@ -1,26 +1,30 @@
-app = "sourdough"
-primary_region = "iad"
+# fly.toml app configuration file generated for sourdough on 2026-06-16T19:53:40Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-[http_service]
-auto_start_machines = true
-auto_stop_machines = true
-force_https = true
-internal_port = 8_080
-min_machines_running = 0
-processes = [ "app" ]
+app = 'sourdough'
+primary_region = 'iad'
 
-# Persist the SQLite database across deploys/restarts. The container filesystem
-# is ephemeral, so the DB (accounts, keys, subscriptions, usage, specs) lives on
-# this volume instead. Single machine only: a volume binds to one machine and
-# SQLite is single-writer — do NOT scale count > 1.
-[mounts]
-  source = "sourdough_data"
-  destination = "/data"
+[build]
 
 [env]
-  DATABASE_PATH = "/data/sourdough.db"
+  DATABASE_PATH = '/data/sourdough.db'
+
+[[mounts]]
+  source = 'sourdough_data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
 
 [[vm]]
-cpu_kind = "shared"
-cpus = 1
-memory = "1gb"
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 1024
