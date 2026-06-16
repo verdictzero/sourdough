@@ -124,6 +124,12 @@ data/                               SQLite file (gitignored)
 Copy `.env.example` → `.env.local`. Defaults work out of the box; knobs are
 `DB_DRIVER` (default `sqlite`) and `DATABASE_PATH` (default `data/sourdough.db`).
 
+## Deploy
+
+`app.js` is a Passenger entry point and `deploy.sh` is a one-command deploy.
+See [`deploy/dreamhost.md`](deploy/dreamhost.md) for a full DreamHost shared-hosting
+walkthrough (Passenger, Node ≥ 22.5, HTTPS, restart).
+
 ## Roadmap
 
 Shipped: accounts, ownership, plans, hashed keys, the gateway with rate
