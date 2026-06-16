@@ -1,34 +1,48 @@
-# Sourdough container image (used by Fly.io and any container host).
-# Multi-stage: install deps -> build -> slim runtime from Next's standalone output.
-# No native modules (node:sqlite is built into Node), so alpine is fine.
+# syntax = docker/dockerfile:1
 
-# --- deps -------------------------------------------------------------------
-FROM node:24-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+# Adjust NODE_VERSION as desired
+ARG NODE_VERSION=22.21.1
+FROM node:${NODE_VERSION}-slim AS base
 
-# --- build ------------------------------------------------------------------
-FROM node:24-alpine AS build
+LABEL fly_launch_runtime="Next.js"
+
+# Next.js app lives here
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+
+# Set production environment
+ENV NODE_ENV="production"
+
+
+# Throw-away build stage to reduce size of final image
+FROM base AS build
+
+# Install packages needed to build node modules
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
+
+# Install node modules
+COPY package-lock.json package.json ./
+RUN npm ci --include=dev
+
+# Copy application code
 COPY . .
-RUN npm run build
 
-# --- runtime ----------------------------------------------------------------
-FROM node:24-alpine AS runner
-WORKDIR /app
+# Build application
+RUN npx next build --experimental-build-mode compile
 
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
-# SQLite lives on a mounted volume so it survives deploys/restarts.
-ENV DATABASE_PATH=/data/sourdough.db
+# Remove development dependencies
+RUN npm prune --omit=dev
 
-# Next "standalone" output: a minimal server.js + only the deps it traced.
-COPY --from=build /app/public ./public
-COPY --from=build /app/.next/standalone ./
-COPY --from=build /app/.next/static ./.next/static
 
+# Final stage for app image
+FROM base
+
+# Copy built application
+COPY --from=build /app /app
+
+# Entrypoint sets up the container.
+ENTRYPOINT [ "/app/docker-entrypoint.js" ]
+
+# Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD [ "npm", "run", "start" ]
