@@ -1,12 +1,13 @@
 # DreamHost shared + Phusion Passenger config for Sourdough (Next.js).
 #
-# Install: copy this file to the domain's DOCUMENT ROOT on the server, i.e.
-#   ~/sourdough.vaportrash.net/public/.htaccess
-# and edit the Node path below.
+# You normally DON'T edit this by hand — `deploy/dreamhost-setup.sh` generates
+# the real ~/sourdough.vaportrash.net/public/.htaccess for you with the correct
+# paths. This file is just a reference of what it produces.
 #
-# Get the path: SSH in, run `nvm use default && which node`, paste the result.
-# Passenger autodetects the app root (the parent of public/) and the startup
-# file (app.js), so only these two directives are needed.
+# DreamHost shared hosting blocks V8's JIT, so Node must run with --jitless.
+# PassengerNodejs therefore points at a wrapper (~/bin/node-jitless) that execs
+# the real node with --jitless. Passenger autodetects the app root (parent of
+# public/) and the startup file (app.js).
 
-PassengerNodejs /home/YOURUSER/.nvm/versions/node/v24.16.0/bin/node
+PassengerNodejs /home/YOURUSER/bin/node-jitless
 PassengerAppEnv production

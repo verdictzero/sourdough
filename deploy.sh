@@ -30,7 +30,9 @@ rsync -avz --delete \
   ./ "${REMOTE}:${APPDIR}/"
 
 echo "▶ Installing deps, building, restarting Passenger on the server ..."
-ssh "${REMOTE}" "bash -lc 'cd ${APPDIR} && npm ci && npm run build && mkdir -p tmp && touch tmp/restart.txt'"
+# NODE_OPTIONS=--jitless: DreamHost shared blocks V8's JIT, so Node must run
+# without it (build + runtime). See deploy/dreamhost-setup.sh for the full setup.
+ssh "${REMOTE}" "bash -lc 'cd ${APPDIR} && export NODE_OPTIONS=--jitless && npm ci && npm run build && mkdir -p tmp && touch tmp/restart.txt'"
 
 echo "✓ Deployed → https://sourdough.vaportrash.net"
 

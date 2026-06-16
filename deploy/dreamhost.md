@@ -3,11 +3,31 @@
 Target: subdomain **sourdough.vaportrash.net** on a DreamHost **shared** plan,
 served by Phusion Passenger.
 
-> Shared hosting runs Node via Passenger with real memory limits and an old
-> default Node. It works for a demo; for production-grade use, a DreamHost VPS
-> removes most of this friction.
+> Shared hosting runs Node via Passenger and **blocks V8's JIT**, so a plain
+> `node` crashes at startup (`SetPermissions ... ENOMEM`). The fix is to run Node
+> with `--jitless` everywhere. The setup script below handles that for you. For
+> production-grade use, a DreamHost VPS removes this friction entirely.
 
-## One-time setup
+## Fastest path: the setup script
+
+The code is already a git repo on the server, so:
+
+```bash
+ssh sshuser@yourserver.dreamhost.com
+# one-time: install Node >= 22.5 if you haven't
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+source ~/.bashrc && nvm install 24 && nvm alias default 24
+
+cd ~/sourdough.vaportrash.net
+git pull
+bash deploy/dreamhost-setup.sh      # builds with --jitless, writes Passenger config, restarts
+```
+
+Then do the panel steps in step 1 below (web directory → `/public`, enable
+Passenger, enable HTTPS) and load the site. The rest of this doc is the manual
+breakdown of what the script does.
+
+## One-time setup (manual breakdown)
 
 ### 1. Create the subdomain as a Passenger app
 In the DreamHost panel → **Websites → Add a website / Manage** for
@@ -27,13 +47,18 @@ nvm install 24 && nvm alias default 24
 which node          # copy this path for the next step
 ```
 
-### 3. Point Passenger at that Node
-Copy `deploy/dreamhost.htaccess` to the server doc root and edit the path:
+### 3. Point Passenger at a `--jitless` Node wrapper
+Because the host blocks V8's JIT, Passenger must launch Node with `--jitless`.
+Create a wrapper and reference it from the doc-root `.htaccess`:
 ```bash
 # on the server
+mkdir -p ~/bin
+printf '#!/bin/bash\nexec "%s" --jitless "$@"\n' "$(which node)" > ~/bin/node-jitless
+chmod +x ~/bin/node-jitless
+
 mkdir -p ~/sourdough.vaportrash.net/public
-# put the file at ~/sourdough.vaportrash.net/public/.htaccess with:
-#   PassengerNodejs /home/YOURUSER/.nvm/versions/node/vXX/bin/node
+# put this at ~/sourdough.vaportrash.net/public/.htaccess:
+#   PassengerNodejs /home/YOURUSER/bin/node-jitless
 #   PassengerAppEnv production
 ```
 
@@ -57,6 +82,10 @@ documented at the bottom of `deploy.sh`.
   user, or disable `seedIfEmpty` in `lib/db/sqlite.ts`).
 
 ## Gotchas
+- **JIT is blocked**: a plain `node` crashes here (`SetPermissions ... ENOMEM`).
+  Everything must run via `--jitless` — the wrapper handles runtime, and the
+  build uses `NODE_OPTIONS=--jitless`. If you see that V8 crash, something ran
+  Node without the flag.
 - **Node version**: if Passenger ignores `PassengerNodejs`, it's running the
   system Node — `node:sqlite` will be missing and the app won't boot. Verify the
   path and that `which node` ≥ v22.5.
