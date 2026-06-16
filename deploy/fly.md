@@ -1,64 +1,58 @@
 # Deploying Sourdough to Fly.io
 
-The repo ships everything Fly needs: `Dockerfile` (multi-stage, builds Next's
-standalone output, runs on Node 24), `fly.toml` (with a persistent volume for
-the SQLite file), and `.dockerignore`.
+`fly launch` already generated the `Dockerfile` + `docker-entrypoint.js` (Node
+22.21, `next build` + `next start`). `fly.toml` is configured here with:
+- `internal_port = 3000` (matches `next start`; the generator's default of 8080
+  was a mismatch and is corrected)
+- a **persistent volume** `sourdough_data` mounted at `/data`, with
+  `DATABASE_PATH=/data/sourdough.db`, so the SQLite DB survives deploys
 
-## First-time setup
+## Deploy
 
 ```bash
-# 1. flyctl + login
-curl -L https://fly.io/install.sh | sh
-fly auth login
+# 1. Create the volume ONCE (deploys fail if the mount target doesn't exist)
+fly volumes create sourdough_data --region iad --size 1 --app sourdough
 
-# 2. Make sure fly.toml's `app = "..."` matches your Fly app (fly apps list)
-
-# 3. Create the persistent volume (SQLite lives here, survives deploys)
-fly volumes create sourdough_data --region iad --size 1 --app <your-app>
-
-# 4. Deploy (builds the Dockerfile on a remote builder — no local RAM needed)
+# 2. Deploy (Fly builds the Dockerfile on a remote builder)
 fly deploy
+
+# 3. Check it
+fly logs
+curl https://sourdough.fly.dev/api/apis     # should return the 7-API JSON
 ```
 
-Check it: `fly logs`, then `curl https://<your-app>.fly.dev/api/apis` (should
-return the 7-API JSON). First request creates/migrates/seeds the DB on the volume.
+First request creates/migrates/seeds the DB on the volume. Seed admin is
+`demo@sourdough.dev` / `password` — change it after first login.
 
-> SQLite = single writer, so run **one** machine (don't scale to multiple).
-> Seed admin is `demo@sourdough.dev` / `password` — change it after first login.
+> SQLite is single-writer: keep this to **one** machine (don't `fly scale count >1`).
 
 ## Point sourdough.vaportrash.net at Fly
 
 DNS for `vaportrash.net` is managed at DreamHost, so the records go there.
 
-### 1. Tell Fly about the domain (gives you the exact records to create)
+### 1. Register the domain with Fly (prints the exact records)
 ```bash
 fly certs add sourdough.vaportrash.net
 fly certs show sourdough.vaportrash.net    # re-run to watch the cert go valid
 ```
-For a subdomain, Fly wants a **CNAME → `<your-app>.fly.dev`** (plus an
-`_acme-challenge` record it prints for cert validation).
+For a subdomain, Fly wants a **CNAME → `sourdough.fly.dev`** plus an
+`_acme-challenge` record it prints for cert validation.
 
 ### 2. Stop DreamHost from hosting the subdomain (the step everyone misses)
-`sourdough.vaportrash.net` is currently a *hosted website* on DreamHost, which
-pins an A record to the shared server — a CNAME can't coexist with it. Remove
-the subdomain's hosting first:
+`sourdough.vaportrash.net` is a *hosted website* on DreamHost, which pins an A
+record to the shared server — a CNAME can't coexist with it:
 - Panel → **Manage Websites** → find `sourdough.vaportrash.net` → **Remove**
-  (delete the website). This frees the name; it does **not** touch
-  `vaportrash.net`'s DNS or your other sites.
+  (delete the website). This does **not** touch `vaportrash.net`'s DNS.
 
 ### 3. Add the CNAME at DreamHost
-- Panel → **Manage Websites** → `vaportrash.net` → **⋮ (3 dots)** → **DNS Settings**
+- Panel → **Manage Websites** → `vaportrash.net` → **⋮** → **DNS Settings**
 - **Add Record**:
-  - **Name / Host:** `sourdough`  (DreamHost appends `.vaportrash.net`)
+  - **Name / Host:** `sourdough`
   - **Type:** `CNAME`
-  - **Value:** `<your-app>.fly.dev.`
-- Also add any `_acme-challenge` CNAME / `_fly-ownership` TXT that `fly certs
-  show` listed (for the SSL cert).
+  - **Value:** `sourdough.fly.dev.`
+- Also add any `_acme-challenge` / `_fly-ownership` record `fly certs show` listed.
 
 ### 4. Wait + verify
-DNS takes a few minutes to a few hours. When `fly certs show
-sourdough.vaportrash.net` reports the certificate is issued, load
-**https://sourdough.vaportrash.net**.
-
-The app's session cookie is `Secure`; Fly serves HTTPS (`force_https = true`),
-so logins work once the cert is live.
+When `fly certs show sourdough.vaportrash.net` reports the cert issued, load
+**https://sourdough.vaportrash.net**. The session cookie is `Secure`; Fly serves
+HTTPS (`force_https`), so logins work once the cert is live.
