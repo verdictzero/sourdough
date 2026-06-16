@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { PricingBadge, StatusBadge } from "@/components/badges";
 import { PlanList } from "@/components/PlanList";
 import { SubscribePanel } from "./SubscribePanel";
+import { SpecReference } from "./SpecReference";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +85,32 @@ export default async function ApiDetailPage({
         </p>
         <pre className="code">{`curl ${gatewayUrl}/${slug === "echo" ? "hello?name=baker" : "ping"} \\
   -H "Authorization: Bearer <your_api_key>"`}</pre>
+      </div>
+
+      <div className="panel">
+        <h2>API reference</h2>
+        {api.hasSpec ? (
+          <>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Interactive docs. <strong>Try it</strong> runs through the Sourdough
+              gateway — add your API key as a Bearer token in the request auth.
+            </p>
+            <p style={{ display: "flex", gap: 8 }}>
+              <a className="btn secondary" href={`/api/apis/${api.slug}/openapi?download=1`}>
+                Download JSON
+              </a>
+              <a className="btn secondary" href={`/api/apis/${api.slug}/openapi?format=yaml&download=1`}>
+                YAML
+              </a>
+            </p>
+            <SpecReference gatewayUrl={gatewayUrl} specUrl={`/api/apis/${api.slug}/openapi`} />
+          </>
+        ) : (
+          <p className="muted" style={{ marginTop: 0 }}>
+            No OpenAPI spec yet.
+            {isOwner ? " Re-publish (or use the wizard) to attach one." : ""}
+          </p>
+        )}
       </div>
 
       <div className="panel">

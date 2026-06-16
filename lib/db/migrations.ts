@@ -108,6 +108,26 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX idx_usage_api  ON usage_events(api_id, created_at);
     `,
   },
+  {
+    id: 2,
+    name: "api_specs",
+    up: `
+      CREATE TABLE api_specs (
+        id              TEXT PRIMARY KEY,
+        api_id          TEXT NOT NULL UNIQUE REFERENCES apis(id) ON DELETE CASCADE,
+        format          TEXT NOT NULL DEFAULT 'json',
+        source          TEXT NOT NULL DEFAULT 'paste',
+        source_url      TEXT,
+        doc             TEXT NOT NULL,
+        title           TEXT NOT NULL DEFAULT '',
+        openapi_version TEXT NOT NULL DEFAULT '',
+        op_count        INTEGER NOT NULL DEFAULT 0,
+        created_at      TEXT NOT NULL,
+        updated_at      TEXT NOT NULL
+      );
+      CREATE INDEX idx_api_specs_api ON api_specs(api_id);
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

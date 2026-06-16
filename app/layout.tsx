@@ -25,6 +25,7 @@ export default async function RootLayout({
             </Link>
             <nav className="nav-links">
               <Link href="/">Marketplace</Link>
+              <Link href="/docs">Docs</Link>
               {user && <Link href="/publish">Publish</Link>}
               {user && <Link href="/dashboard">Dashboard</Link>}
               {user ? (

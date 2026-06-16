@@ -24,6 +24,43 @@ export default async function MarketplacePage({
           Browse the Sourdough marketplace, grab an API key in one click, and
           start building. Publishing your own takes about a minute.
         </p>
+        <div className="hero-ctas">
+          <Link href="/docs" className="btn secondary">
+            Read the docs
+          </Link>
+          <Link href="/publish" className="btn">
+            Publish your API
+          </Link>
+        </div>
+      </section>
+
+      <section className="how">
+        <div className="how-step">
+          <span className="how-num">1</span>
+          <div>
+            <strong>Discover</strong>
+            <p className="muted">Browse APIs by category, pricing, and tags.</p>
+          </div>
+        </div>
+        <div className="how-step">
+          <span className="how-num">2</span>
+          <div>
+            <strong>Subscribe</strong>
+            <p className="muted">Pick a plan and get an API key instantly.</p>
+          </div>
+        </div>
+        <div className="how-step">
+          <span className="how-num">3</span>
+          <div>
+            <strong>Call the gateway</strong>
+            <p className="muted">
+              One endpoint, with auth, rate limits, and usage built in.
+            </p>
+          </div>
+        </div>
+        <Link href="/docs" className="how-more">
+          Full docs →
+        </Link>
       </section>
 
       <form className="filters" action="/" method="get">

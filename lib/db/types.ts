@@ -9,6 +9,8 @@ export type Pricing = "free" | "freemium" | "paid";
 export type ApiStatus = "draft" | "published";
 export type SubscriptionStatus = "active" | "revoked";
 export type UserRole = "user" | "admin";
+export type SpecFormat = "json" | "yaml";
+export type SpecSource = "paste" | "url" | "upload";
 
 // --- users & sessions --------------------------------------------------------
 
@@ -104,6 +106,37 @@ export interface ApiFilter {
 
 export interface ApiWithPlans extends ApiListing {
   plans: Plan[];
+  /** Whether an OpenAPI spec is stored for this API (set by getWithPlans). */
+  hasSpec?: boolean;
+}
+
+// --- OpenAPI specs -----------------------------------------------------------
+
+/** A stored OpenAPI document for an API (one per API; replace-on-update). */
+export interface ApiSpec {
+  id: string;
+  apiId: string;
+  format: SpecFormat;
+  source: SpecSource;
+  sourceUrl: string | null;
+  /** Normalized, bundled OpenAPI document as a JSON string. */
+  doc: string;
+  title: string;
+  openapiVersion: string;
+  opCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewApiSpec {
+  apiId: string;
+  format: SpecFormat;
+  source: SpecSource;
+  sourceUrl?: string | null;
+  doc: string;
+  title: string;
+  openapiVersion: string;
+  opCount: number;
 }
 
 // --- subscriptions & keys ----------------------------------------------------
@@ -228,6 +261,13 @@ export interface UsageRepository {
   recentForUser(userId: string, limit: number): Promise<UsageEvent[]>;
 }
 
+export interface SpecRepository {
+  getByApiId(apiId: string): Promise<ApiSpec | null>;
+  /** Insert or replace the single spec for an API. */
+  upsert(input: NewApiSpec): Promise<ApiSpec>;
+  remove(apiId: string): Promise<boolean>;
+}
+
 export interface Repositories {
   users: UserRepository;
   sessions: SessionRepository;
@@ -236,4 +276,5 @@ export interface Repositories {
   subscriptions: SubscriptionRepository;
   apiKeys: ApiKeyRepository;
   usage: UsageRepository;
+  specs: SpecRepository;
 }

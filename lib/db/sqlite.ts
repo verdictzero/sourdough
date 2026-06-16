@@ -25,10 +25,13 @@ import type {
   ApiListing,
   ApiPatch,
   ApiRepository,
+  ApiSpec,
   ApiWithPlans,
   NewApiListing,
+  NewApiSpec,
   NewPlan,
   NewUsageEvent,
+  SpecRepository,
   Plan,
   PlanRepository,
   Repositories,
@@ -160,6 +163,22 @@ function mapUsage(r: any): UsageEvent {
     createdAt: r.created_at,
   };
 }
+
+function mapApiSpec(r: any): ApiSpec {
+  return {
+    id: r.id,
+    apiId: r.api_id,
+    format: r.format,
+    source: r.source,
+    sourceUrl: r.source_url ?? null,
+    doc: r.doc,
+    title: r.title,
+    openapiVersion: r.openapi_version,
+    opCount: r.op_count,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // --- repositories ------------------------------------------------------------
@@ -280,7 +299,10 @@ function createApiRepository(db: DatabaseSync): ApiRepository {
     async getWithPlans(slug) {
       const api = await getBySlug(slug);
       if (!api) return null;
-      return { ...api, plans: plansFor(api.id) } satisfies ApiWithPlans;
+      const hasSpec = !!db
+        .prepare("SELECT 1 FROM api_specs WHERE api_id = ?")
+        .get(api.id);
+      return { ...api, plans: plansFor(api.id), hasSpec } satisfies ApiWithPlans;
     },
 
     async create(input, plans) {
@@ -549,6 +571,46 @@ function createApiKeyRepository(db: DatabaseSync): ApiKeyRepository {
   };
 }
 
+function createSpecRepository(db: DatabaseSync): SpecRepository {
+  return {
+    async getByApiId(apiId) {
+      const r = db.prepare("SELECT * FROM api_specs WHERE api_id = ?").get(apiId);
+      return r ? mapApiSpec(r) : null;
+    },
+
+    async upsert(input: NewApiSpec) {
+      const ts = nowIso();
+      // ON CONFLICT(api_id) leaves created_at untouched (only set on insert).
+      db.prepare(
+        `INSERT INTO api_specs
+          (id, api_id, format, source, source_url, doc, title, openapi_version, op_count, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(api_id) DO UPDATE SET
+           format=excluded.format, source=excluded.source, source_url=excluded.source_url,
+           doc=excluded.doc, title=excluded.title, openapi_version=excluded.openapi_version,
+           op_count=excluded.op_count, updated_at=excluded.updated_at`,
+      ).run(
+        newId(),
+        input.apiId,
+        input.format,
+        input.source,
+        input.sourceUrl ?? null,
+        input.doc,
+        input.title,
+        input.openapiVersion,
+        input.opCount,
+        ts,
+        ts,
+      );
+      return (await this.getByApiId(input.apiId))!;
+    },
+
+    async remove(apiId) {
+      return db.prepare("DELETE FROM api_specs WHERE api_id = ?").run(apiId).changes > 0;
+    },
+  };
+}
+
 function createUsageRepository(db: DatabaseSync): UsageRepository {
   return {
     async record(e: NewUsageEvent) {
@@ -619,6 +681,7 @@ export function createSqliteRepositories(path: string): Repositories {
     subscriptions: createSubscriptionRepository(db),
     apiKeys: createApiKeyRepository(db),
     usage: createUsageRepository(db),
+    specs: createSpecRepository(db),
   };
 }
 
