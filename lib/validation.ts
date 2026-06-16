@@ -77,9 +77,10 @@ export function validateNewApi(
   if (!name) errors.push("name is required");
   const provider = str(b.provider);
   if (!provider) errors.push("provider is required");
+  // baseUrl is optional: an empty value marks a catalog/docs-only API with no
+  // live endpoint. When provided, it must still look like a URL or relative path.
   const baseUrl = str(b.baseUrl);
-  if (!baseUrl) errors.push("baseUrl is required");
-  else if (!/^(https?:\/\/|\/)/i.test(baseUrl))
+  if (baseUrl && !/^(https?:\/\/|\/)/i.test(baseUrl))
     errors.push("baseUrl must start with http(s):// or / (for a relative path)");
 
   const pricing = (str(b.pricing) || "free") as Pricing;

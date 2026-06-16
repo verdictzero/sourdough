@@ -61,7 +61,11 @@ export default async function ApiDetailPage({
           <dd>{api.version}</dd>
           <dt>Upstream</dt>
           <dd>
-            <code className="inline">{api.baseUrl}</code>
+            {api.baseUrl.trim() ? (
+              <code className="inline">{api.baseUrl}</code>
+            ) : (
+              <span className="muted">No live endpoint — catalog only</span>
+            )}
           </dd>
           {api.tags.length > 0 && (
             <>
@@ -79,12 +83,22 @@ export default async function ApiDetailPage({
 
       <div className="panel">
         <h2>Quickstart</h2>
-        <p className="muted" style={{ marginTop: 0 }}>
-          Call the API <strong>through the Sourdough gateway</strong> — it checks
-          your key, enforces your plan, and forwards to the upstream:
-        </p>
-        <pre className="code">{`curl ${gatewayUrl}/${slug === "echo" ? "hello?name=baker" : "ping"} \\
+        {api.baseUrl.trim() ? (
+          <>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Call the API <strong>through the Sourdough gateway</strong> — it checks
+              your key, enforces your plan, and forwards to the upstream:
+            </p>
+            <pre className="code">{`curl ${gatewayUrl}/${slug === "echo" ? "hello?name=baker" : "ping"} \\
   -H "Authorization: Bearer <your_api_key>"`}</pre>
+          </>
+        ) : (
+          <p className="muted" style={{ marginTop: 0 }}>
+            This is a <strong>catalog-only</strong> listing — it has no live
+            endpoint, so the Sourdough gateway won&apos;t proxy requests. Browse the
+            reference below for documentation.
+          </p>
+        )}
       </div>
 
       <div className="panel">

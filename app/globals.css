@@ -212,6 +212,18 @@ label {
   color: var(--muted);
   margin-top: 4px;
 }
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.checkbox-row input {
+  width: auto;
+  margin: 0;
+}
 .row {
   display: grid;
   grid-template-columns: 1fr 1fr;

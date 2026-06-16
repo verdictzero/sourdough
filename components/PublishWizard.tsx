@@ -13,6 +13,7 @@ const EMPTY = {
   tagline: "",
   description: "",
   baseUrl: "",
+  noEndpoint: false,
   version: "v1",
   specMode: "skip" as "skip" | "paste" | "url" | "upload",
   specRaw: "",
@@ -57,7 +58,7 @@ export function PublishWizard() {
       if (!form.name.trim()) return "Give your API a name.";
       if (!form.provider.trim()) return "Who's the provider?";
     }
-    if (s === 1) {
+    if (s === 1 && !form.noEndpoint) {
       if (!form.baseUrl.trim()) return "Enter the upstream base URL.";
       if (!/^(https?:\/\/|\/)/i.test(form.baseUrl.trim()))
         return "Base URL must start with http(s):// or / (relative).";
@@ -160,7 +161,7 @@ export function PublishWizard() {
           category: form.category,
           tagline: form.tagline,
           description: form.description,
-          baseUrl: form.baseUrl,
+          baseUrl: form.noEndpoint ? "" : form.baseUrl,
           version: form.version,
           status: form.status,
           plan: {
@@ -307,11 +308,23 @@ export function PublishWizard() {
               <code className="inline">/demo/echo</code> to try the built-in test
               upstream.
             </p>
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={form.noEndpoint}
+                onChange={(e) => {
+                  set("noEndpoint", e.target.checked);
+                  setTest({ kind: "idle" });
+                }}
+              />
+              <span>No live endpoint (catalog/docs only)</span>
+            </label>
             <div className="field">
-              <label htmlFor="baseUrl">Base URL *</label>
+              <label htmlFor="baseUrl">Base URL</label>
               <input
                 id="baseUrl"
                 value={form.baseUrl}
+                disabled={form.noEndpoint}
                 onChange={(e) => {
                   set("baseUrl", e.target.value);
                   setTest({ kind: "idle" });
@@ -319,17 +332,28 @@ export function PublishWizard() {
                 placeholder="https://api.example.com  or  /demo/echo"
               />
               <div className="hint">
-                <code className="inline">/gateway/your-api/v1/x</code> →{" "}
-                <code className="inline">{form.baseUrl || "https://api.example.com"}/v1/x</code>
+                {form.noEndpoint ? (
+                  "Listed in the catalog for its docs; the gateway won't proxy requests."
+                ) : (
+                  <>
+                    <code className="inline">/gateway/your-api/v1/x</code> →{" "}
+                    <code className="inline">{form.baseUrl || "https://api.example.com"}/v1/x</code>
+                  </>
+                )}
               </div>
             </div>
-            <button type="button" className="btn secondary" onClick={testUpstream} disabled={test.kind === "testing"}>
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={testUpstream}
+              disabled={form.noEndpoint || test.kind === "testing"}
+            >
               {test.kind === "testing" ? "Testing…" : "Test connection"}
             </button>
-            {test.kind === "ok" && (
+            {!form.noEndpoint && test.kind === "ok" && (
               <div className="test-result ok">✓ Reachable — HTTP {test.status} ({test.latencyMs} ms)</div>
             )}
-            {test.kind === "fail" && (
+            {!form.noEndpoint && test.kind === "fail" && (
               <div className="test-result fail">✗ {test.error}. You can still continue.</div>
             )}
           </>
@@ -454,7 +478,13 @@ export function PublishWizard() {
               <dt>Name</dt><dd>{form.name}</dd>
               <dt>Provider</dt><dd>{form.provider}</dd>
               <dt>Category</dt><dd>{form.category || "General"}</dd>
-              <dt>Upstream</dt><dd><code className="inline">{form.baseUrl}</code> ({form.version || "v1"})</dd>
+              <dt>Upstream</dt><dd>
+                {form.noEndpoint || !form.baseUrl.trim() ? (
+                  <span className="muted">No live endpoint — catalog only</span>
+                ) : (
+                  <><code className="inline">{form.baseUrl}</code> ({form.version || "v1"})</>
+                )}
+              </dd>
               <dt>Spec</dt><dd>
                 {form.specMode === "skip"
                   ? "none (add later)"

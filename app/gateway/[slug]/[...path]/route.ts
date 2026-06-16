@@ -62,6 +62,15 @@ async function handle(req: Request, { params }: Ctx) {
     );
   }
 
+  // Catalog/docs-only APIs have no upstream to proxy to. Bail out clearly rather
+  // than letting buildTarget fall back to this gateway's own origin.
+  if (!api.baseUrl.trim()) {
+    return NextResponse.json(
+      { error: "This API has no upstream endpoint configured (catalog-only)." },
+      { status: 502 },
+    );
+  }
+
   // 3. Enforce plan limits.
   const plan = subscription.planId ? await db.plans.getById(subscription.planId) : null;
   const minuteAgo = new Date(Date.now() - 60_000).toISOString();
